@@ -39,5 +39,6 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
+            cp /opt/kloudshef/target/backend-0.0.1-SNAPSHOT.jar /opt/kloudshef/backend.jar
             sudo systemctl restart kloudshef
             sudo systemctl status kloudshef --no-pager
