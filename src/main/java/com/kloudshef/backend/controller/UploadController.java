@@ -34,19 +34,13 @@ public class UploadController {
                     .body(ApiResponse.error("No file provided"));
         }
 
-        // Validate content type
+        // Always treat uploads as JPEG (client always compresses to JPEG)
+        String ext = ".jpg";
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Only image files are allowed"));
+        if (contentType != null) {
+            if (contentType.contains("png"))  ext = ".png";
+            else if (contentType.contains("webp")) ext = ".webp";
         }
-
-        // Determine extension
-        String ext = switch (contentType) {
-            case "image/png"  -> ".png";
-            case "image/webp" -> ".webp";
-            default           -> ".jpg";
-        };
 
         // Save file
         Path dir = Paths.get(uploadDir);
