@@ -32,7 +32,7 @@ jwt:
 app:
   upload:
     dir: uploads/images
-    base-url: http://18.191.156.102:8080
+    base-url: http://18.191.156.102
   subscription:
     monthly-price: 999.00
     currency: INR
