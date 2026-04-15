@@ -56,6 +56,7 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/users/me").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/api/users/fcm-token").authenticated()
                 .requestMatchers("/api/orders/**").authenticated()
                 .anyRequest().authenticated()
             )
