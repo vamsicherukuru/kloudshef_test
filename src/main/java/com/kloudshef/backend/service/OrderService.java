@@ -78,12 +78,16 @@ public class OrderService {
         savedOrder.getItems().addAll(orderItems);
         orderRepository.save(savedOrder);
 
-        // Notify cook about new order
+        // Notify cook — rich message with item count and amount
         String cookFcmToken = cook.getUser() != null ? cook.getUser().getFcmToken() : null;
+        int itemCount = orderItems.stream().mapToInt(OrderItem::getQuantity).sum();
+        String itemWord = itemCount == 1 ? "item" : "items";
         fcmService.sendNotification(
                 cookFcmToken,
-                "New Order!",
-                customer.getFullName() + " just placed an order from " + cook.getKitchenName()
+                "New Pickup Request!",
+                customer.getFullName() + " ordered " + itemCount + " " + itemWord
+                        + " worth " + totalAmount.stripTrailingZeros().toPlainString(),
+                "new_order"
         );
 
         return getMyOrders(customerId);
@@ -126,15 +130,31 @@ public class OrderService {
 
         // Notify customer about status change
         String customerToken = saved.getCustomer().getFcmToken();
-        String statusMsg = switch (parsed) {
-            case CONFIRMED  -> "Your order from " + saved.getCook().getKitchenName() + " is confirmed!";
-            case READY      -> "Your order from " + saved.getCook().getKitchenName() + " is ready for pickup!";
-            case COMPLETED  -> "Order from " + saved.getCook().getKitchenName() + " completed. Enjoy!";
-            case CANCELLED  -> "Your order from " + saved.getCook().getKitchenName() + " was cancelled.";
-            default         -> null;
+        String kitchen = saved.getCook().getKitchenName();
+        record NotifContent(String title, String body) {}
+        NotifContent notif = switch (parsed) {
+            case ACCEPTED       -> new NotifContent(
+                    "Order Accepted!",
+                    kitchen + " accepted your request and will start preparing soon.");
+            case PREPARING      -> new NotifContent(
+                    "Being Prepared",
+                    kitchen + " is cooking your order right now. Hang tight!");
+            case PACKING        -> new NotifContent(
+                    "Almost Ready!",
+                    kitchen + " is packing your order. Won't be long now!");
+            case READY_TO_PICKUP -> new NotifContent(
+                    "Ready for Pickup!",
+                    "Your order from " + kitchen + " is ready. Head over now!");
+            case COMPLETED      -> new NotifContent(
+                    "Order Complete!",
+                    "Enjoy your meal from " + kitchen + "! Leave a review if you loved it.");
+            case CANCELLED      -> new NotifContent(
+                    "Order Cancelled",
+                    "Your order from " + kitchen + " was cancelled.");
+            default             -> null;
         };
-        if (statusMsg != null) {
-            fcmService.sendNotification(customerToken, "Order Update", statusMsg);
+        if (notif != null) {
+            fcmService.sendNotification(customerToken, notif.title(), notif.body(), "order_update");
         }
 
         return toResponse(saved);
