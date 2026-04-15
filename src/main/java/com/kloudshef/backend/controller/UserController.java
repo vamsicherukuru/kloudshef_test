@@ -43,6 +43,17 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PutMapping("/fcm-token")
+    public ResponseEntity<ApiResponse<Void>> updateFcmToken(
+            @AuthenticationPrincipal User user,
+            @RequestBody java.util.Map<String, String> body) {
+        User managed = userRepository.findById(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        managed.setFcmToken(body.get("fcmToken"));
+        userRepository.save(managed);
+        return ResponseEntity.ok(ApiResponse.success("FCM token updated", null));
+    }
+
     @PutMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> updateMe(
             @AuthenticationPrincipal User user,

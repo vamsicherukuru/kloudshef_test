@@ -45,6 +45,9 @@ public class User implements UserDetails {
 
     private String profileImageUrl;
 
+    @Column(length = 512)
+    private String fcmToken;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;

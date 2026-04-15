@@ -26,6 +26,7 @@ public class OrderService {
     private final CookRepository cookRepository;
     private final MenuItemRepository menuItemRepository;
     private final UserRepository userRepository;
+    private final FcmService fcmService;
 
     @Transactional
     public List<OrderResponse> placeOrder(Long customerId, PlaceOrderRequest request) {
@@ -77,6 +78,14 @@ public class OrderService {
         savedOrder.getItems().addAll(orderItems);
         orderRepository.save(savedOrder);
 
+        // Notify cook about new order
+        String cookFcmToken = cook.getUser() != null ? cook.getUser().getFcmToken() : null;
+        fcmService.sendNotification(
+                cookFcmToken,
+                "New Order!",
+                customer.getFullName() + " just placed an order from " + cook.getKitchenName()
+        );
+
         return getMyOrders(customerId);
     }
 
@@ -113,6 +122,19 @@ public class OrderService {
             Cook cook = saved.getCook();
             cook.setTotalOrders(cook.getTotalOrders() + 1);
             cookRepository.save(cook);
+        }
+
+        // Notify customer about status change
+        String customerToken = saved.getCustomer().getFcmToken();
+        String statusMsg = switch (parsed) {
+            case CONFIRMED  -> "Your order from " + saved.getCook().getKitchenName() + " is confirmed!";
+            case READY      -> "Your order from " + saved.getCook().getKitchenName() + " is ready for pickup!";
+            case COMPLETED  -> "Order from " + saved.getCook().getKitchenName() + " completed. Enjoy!";
+            case CANCELLED  -> "Your order from " + saved.getCook().getKitchenName() + " was cancelled.";
+            default         -> null;
+        };
+        if (statusMsg != null) {
+            fcmService.sendNotification(customerToken, "Order Update", statusMsg);
         }
 
         return toResponse(saved);
