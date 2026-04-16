@@ -31,7 +31,7 @@ jobs:
           source: "target/backend-0.0.1-SNAPSHOT.jar"
           target: "/opt/kloudshef/target/"
 
-      - name: Deploy firebase service account to EC2
+      - name: Write Firebase credentials & restart
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -39,18 +39,27 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
+            # Write Firebase credentials from GitHub secret
             mkdir -p /opt/kloudshef/resources
             echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > /opt/kloudshef/resources/firebase-service-account.json
 
-      - name: Restart backend on EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT }}
-          script: |
+            # Deploy new jar
             cp /opt/kloudshef/target/backend-0.0.1-SNAPSHOT.jar /opt/kloudshef/backend.jar
+
+            # Restart service
             sudo systemctl restart kloudshef
-            sleep 10
-            sudo systemctl status kloudshef --no-pager
+
+            # Wait for Spring Boot to fully start (it takes ~15-20s)
+            echo "Waiting for service to start..."
+            for i in $(seq 1 12); do
+              sleep 5
+              STATUS=$(sudo systemctl is-active kloudshef)
+              echo "[$i] Service status: $STATUS"
+              if [ "$STATUS" = "active" ]; then
+                echo "Service started successfully!"
+                exit 0
+              fi
+            done
+            echo "Service did not start in time — checking logs:"
+            sudo journalctl -u kloudshef --no-pager -n 30
+            exit 1
