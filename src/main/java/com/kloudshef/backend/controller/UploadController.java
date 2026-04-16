@@ -1,6 +1,7 @@
 package com.kloudshef.backend.controller;
 
 import com.kloudshef.backend.dto.response.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -22,31 +23,29 @@ public class UploadController {
     @Value("${app.upload.dir:uploads/images}")
     private String uploadDir;
 
-    @Value("${app.upload.base-url:http://192.168.1.7:8080}")
-    private String baseUrl;
-
     @PostMapping("/image")
     public ResponseEntity<ApiResponse<Map<String, String>>> uploadImage(
-            @RequestParam("file") MultipartFile file) throws IOException {
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) throws IOException {
 
         if (file.isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("No file provided"));
         }
 
-        // Always treat uploads as JPEG (client always compresses to JPEG)
-        String ext = ".jpg";
-        String contentType = file.getContentType();
-        if (contentType != null) {
-            if (contentType.contains("png"))  ext = ".png";
-            else if (contentType.contains("webp")) ext = ".webp";
-        }
-
-        // Save file
-        Path dir = Paths.get(uploadDir);
+        // Save file under uploads/images/
+        Path dir = Paths.get(uploadDir).toAbsolutePath();
         Files.createDirectories(dir);
-        String filename = UUID.randomUUID() + ext;
+        String filename = UUID.randomUUID() + ".jpg";
         Files.write(dir.resolve(filename), file.getBytes());
+
+        // Build URL dynamically from the incoming request — works local and on EC2
+        String baseUrl = request.getScheme() + "://" + request.getServerName();
+        int port = request.getServerPort();
+        if (!((request.getScheme().equals("http") && port == 80)
+                || (request.getScheme().equals("https") && port == 443))) {
+            baseUrl += ":" + port;
+        }
 
         String url = baseUrl + "/uploads/images/" + filename;
         return ResponseEntity.ok(ApiResponse.success("Uploaded", Map.of("url", url)));
