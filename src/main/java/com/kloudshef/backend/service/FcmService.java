@@ -3,9 +3,7 @@ package com.kloudshef.backend.service;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
+import com.google.firebase.messaging.*;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -69,21 +67,52 @@ public class FcmService {
     }
 
     public void sendNotification(String fcmToken, String title, String body, String type) {
-        if (fcmToken == null || fcmToken.isBlank()) return;
+        if (fcmToken == null || fcmToken.isBlank()) {
+            log.warn("FCM skip — no token for type [{}]", type);
+            return;
+        }
         try {
-            if (FirebaseApp.getApps().isEmpty()) return;
+            if (FirebaseApp.getApps().isEmpty()) {
+                log.warn("FCM skip — Firebase not initialized");
+                return;
+            }
             Message message = Message.builder()
                     .setNotification(Notification.builder()
                             .setTitle(title)
                             .setBody(body)
                             .build())
                     .putAllData(Map.of("type", type))
+                    // Android config
+                    .setAndroidConfig(AndroidConfig.builder()
+                            .setPriority(AndroidConfig.Priority.HIGH)
+                            .setNotification(AndroidNotification.builder()
+                                    .setSound("default")
+                                    .setChannelId("kloudshef_orders")
+                                    .build())
+                            .build())
+                    // iOS / APNs config — required for iOS push to work
+                    .setApnsConfig(ApnsConfig.builder()
+                            .setAps(Aps.builder()
+                                    .setAlert(ApsAlert.builder()
+                                            .setTitle(title)
+                                            .setBody(body)
+                                            .build())
+                                    .setSound("default")
+                                    .setBadge(1)
+                                    .setContentAvailable(true)
+                                    .build())
+                            .putHeader("apns-priority", "10")
+                            .putHeader("apns-push-type", "alert")
+                            .build())
                     .setToken(fcmToken)
                     .build();
             String response = FirebaseMessaging.getInstance().send(message);
             log.info("FCM sent [{}]: {}", type, response);
+        } catch (FirebaseMessagingException e) {
+            log.warn("FCM send failed [{}] for token {}: {} (code={})",
+                    type, fcmToken, e.getMessage(), e.getMessagingErrorCode());
         } catch (Exception e) {
-            log.warn("FCM send failed for token {}: {}", fcmToken, e.getMessage());
+            log.warn("FCM send failed [{}] for token {}: {}", type, fcmToken, e.getMessage());
         }
     }
 }

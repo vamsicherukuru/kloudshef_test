@@ -27,6 +27,7 @@ public class ReviewService {
     private final CookRepository cookRepository;
     private final UserRepository userRepository;
     private final HuggingFaceService huggingFaceService;
+    private final FcmService fcmService;
 
     public Page<ReviewResponse> getReviewsByCookId(Long cookId, Pageable pageable) {
         return reviewRepository.findByCookId(cookId, pageable).map(this::toResponse);
@@ -56,6 +57,18 @@ public class ReviewService {
         reviewRepository.save(review);
         updateCookRating(cook);
         huggingFaceService.refreshReviewSummary(cook.getId());
+
+        // Notify the chef about the new review
+        String cookToken = cook.getUser() != null ? cook.getUser().getFcmToken() : null;
+        String stars = "★".repeat(request.getRating()) + "☆".repeat(5 - request.getRating());
+        fcmService.sendNotification(
+                cookToken,
+                "New Review! " + stars,
+                user.getFirstName() + " left a " + request.getRating() + "-star review"
+                        + (request.getComment() != null ? ": \"" + request.getComment() + "\"" : ""),
+                "new_review"
+        );
+
         return toResponse(review);
     }
 
