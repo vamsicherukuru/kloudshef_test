@@ -176,7 +176,6 @@ public class CookService {
 
     private CookDetailResponse toDetail(Cook cook) {
         List<MenuItemResponse> menuItems = cook.getMenuItems().stream()
-                .filter(item -> item.isAvailable())
                 .map(item -> MenuItemResponse.builder()
                         .id(item.getId())
                         .name(item.getName())
@@ -186,7 +185,7 @@ public class CookService {
                         .imageUrl(item.getImageUrl())
                         .tags(item.getTags())
                         .available(item.isAvailable())
-                        .isVegetarian(item.isVegetarian())
+                        .vegetarian(item.isVegetarian())
                         .createdAt(item.getCreatedAt())
                         .build())
                 .toList();

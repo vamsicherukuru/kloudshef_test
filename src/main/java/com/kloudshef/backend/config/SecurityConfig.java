@@ -57,6 +57,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/users/me").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/users/me").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/users/fcm-token").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/users/fcm-token").authenticated()
                 .requestMatchers("/api/orders/**").authenticated()
                 .anyRequest().authenticated()
             )

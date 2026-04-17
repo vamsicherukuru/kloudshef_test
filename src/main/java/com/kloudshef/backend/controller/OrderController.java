@@ -43,6 +43,14 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success(orderService.getMyOrders(user.getId())));
     }
 
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<OrderResponse>> cancelOrder(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ApiResponse.success(orderService.cancelOrder(id, user.getId())));
+    }
+
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('COOK')")
     public ResponseEntity<ApiResponse<OrderResponse>> updateOrderStatus(

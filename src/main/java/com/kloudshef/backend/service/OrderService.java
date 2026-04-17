@@ -29,8 +29,22 @@ public class OrderService {
     private final UserRepository userRepository;
     private final FcmService fcmService;
 
+    private static final int MAX_ACTIVE_ORDERS = 4;
+
     @Transactional
     public List<OrderResponse> placeOrder(Long customerId, PlaceOrderRequest request) {
+        // Rate limit: max 4 active orders per customer
+        long activeCount = orderRepository.countByCustomer_IdAndStatusIn(
+                customerId,
+                List.of(OrderStatus.PENDING, OrderStatus.ACCEPTED,
+                        OrderStatus.PREPARING, OrderStatus.PACKING,
+                        OrderStatus.READY_TO_PICKUP));
+        if (activeCount >= MAX_ACTIVE_ORDERS) {
+            throw new BadRequestException(
+                    "You can have at most " + MAX_ACTIVE_ORDERS + " active orders at a time. " +
+                    "Please wait for a current order to complete before placing a new one.");
+        }
+
         Cook cook = cookRepository.findById(request.getCookId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cook not found with id: " + request.getCookId()));
 
@@ -93,6 +107,35 @@ public class OrderService {
         }
 
         return getMyOrders(customerId);
+    }
+
+    @Transactional
+    public OrderResponse cancelOrder(Long orderId, Long customerId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+
+        if (!order.getCustomer().getId().equals(customerId)) {
+            throw new BadRequestException("You are not authorized to cancel this order");
+        }
+
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.ACCEPTED) {
+            throw new BadRequestException(
+                    "Cannot cancel — order is already being prepared. Please contact the cook directly.");
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        Order saved = orderRepository.save(order);
+
+        // Notify the cook
+        String customerName = saved.getCustomer().getFullName();
+        fcmService.sendToUser(
+                saved.getCook().getUser().getId(),
+                "Order Cancelled",
+                customerName + " cancelled their order #" + orderId,
+                "order_update"
+        );
+
+        return toResponse(saved);
     }
 
     public List<OrderResponse> getMyOrders(Long customerId) {

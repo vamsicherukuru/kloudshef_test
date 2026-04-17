@@ -17,6 +17,6 @@ public class MenuItemResponse {
     private String imageUrl;
     private String tags;
     private boolean available;
-    private boolean isVegetarian;
+    private boolean vegetarian;
     private LocalDateTime createdAt;
 }

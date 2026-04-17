@@ -74,6 +74,19 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("FCM token updated", null));
     }
 
+    @DeleteMapping("/fcm-token")
+    public ResponseEntity<ApiResponse<Void>> deleteFcmToken(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) String deviceId) {
+        if (deviceId != null && !deviceId.isEmpty()) {
+            deviceTokenRepository.findByUserIdAndDeviceId(user.getId(), deviceId)
+                    .ifPresent(deviceTokenRepository::delete);
+        } else {
+            deviceTokenRepository.deleteByUserId(user.getId());
+        }
+        return ResponseEntity.ok(ApiResponse.success("FCM token removed", null));
+    }
+
     @PutMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> updateMe(
             @AuthenticationPrincipal User user,

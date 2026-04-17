@@ -20,5 +20,5 @@ public class MenuItemRequest {
     private String imageUrl;
     private String tags;
     private boolean available = true;
-    private boolean isVegetarian;
+    private boolean vegetarian;
 }

@@ -22,7 +22,7 @@ public class MenuItemService {
     private final CookRepository cookRepository;
 
     public List<MenuItemResponse> getMenuItemsByCookId(Long cookId) {
-        return menuItemRepository.findByCookIdAndAvailableTrue(cookId).stream()
+        return menuItemRepository.findByCookId(cookId).stream()
                 .map(this::toResponse).toList();
     }
 
@@ -39,7 +39,7 @@ public class MenuItemService {
                 .imageUrl(request.getImageUrl())
                 .tags(request.getTags())
                 .available(request.isAvailable())
-                .isVegetarian(request.isVegetarian())
+                .vegetarian(request.isVegetarian())
                 .build();
         return toResponse(menuItemRepository.save(item));
     }
@@ -86,7 +86,7 @@ public class MenuItemService {
                 .imageUrl(item.getImageUrl())
                 .tags(item.getTags())
                 .available(item.isAvailable())
-                .isVegetarian(item.isVegetarian())
+                .vegetarian(item.isVegetarian())
                 .createdAt(item.getCreatedAt())
                 .build();
     }
