@@ -10,14 +10,24 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import com.kloudshef.backend.entity.DeviceToken;
+import com.kloudshef.backend.repository.DeviceTokenRepository;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 
 @Service
 @Slf4j
 public class FcmService {
+
+    private final DeviceTokenRepository deviceTokenRepository;
+
+    public FcmService(DeviceTokenRepository deviceTokenRepository) {
+        this.deviceTokenRepository = deviceTokenRepository;
+    }
 
     // External path used on EC2 (written by CI/CD pipeline)
     @Value("${app.firebase.credentials-path:/opt/kloudshef/resources/firebase-service-account.json}")
@@ -66,6 +76,24 @@ public class FcmService {
         return null;
     }
 
+    /**
+     * Send notification to ALL devices of a user (multi-device support).
+     */
+    public void sendToUser(Long userId, String title, String body, String type) {
+        List<DeviceToken> tokens = deviceTokenRepository.findByUserId(userId);
+        if (tokens.isEmpty()) {
+            log.warn("FCM skip — no device tokens for userId [{}], type [{}]", userId, type);
+            return;
+        }
+        log.info("FCM sending [{}] to {} device(s) for userId {}", type, tokens.size(), userId);
+        for (DeviceToken dt : tokens) {
+            sendNotification(dt.getFcmToken(), title, body, type);
+        }
+    }
+
+    /**
+     * Send notification to a single FCM token.
+     */
     public void sendNotification(String fcmToken, String title, String body, String type) {
         if (fcmToken == null || fcmToken.isBlank()) {
             log.warn("FCM skip — no token for type [{}]", type);
@@ -82,7 +110,6 @@ public class FcmService {
                             .setBody(body)
                             .build())
                     .putAllData(Map.of("type", type))
-                    // Android config
                     .setAndroidConfig(AndroidConfig.builder()
                             .setPriority(AndroidConfig.Priority.HIGH)
                             .setNotification(AndroidNotification.builder()
@@ -90,7 +117,6 @@ public class FcmService {
                                     .setChannelId("kloudshef_orders")
                                     .build())
                             .build())
-                    // iOS / APNs config — required for iOS push to work
                     .setApnsConfig(ApnsConfig.builder()
                             .setAps(Aps.builder()
                                     .setAlert(ApsAlert.builder()
@@ -109,6 +135,11 @@ public class FcmService {
             String response = FirebaseMessaging.getInstance().send(message);
             log.info("FCM sent [{}]: {}", type, response);
         } catch (FirebaseMessagingException e) {
+            // Clean up stale/unregistered tokens automatically
+            if (e.getMessagingErrorCode() == MessagingErrorCode.UNREGISTERED) {
+                log.info("FCM token unregistered — removing stale token");
+                deviceTokenRepository.deleteByFcmToken(fcmToken);
+            }
             log.warn("FCM send failed [{}] for token {}: {} (code={})",
                     type, fcmToken, e.getMessage(), e.getMessagingErrorCode());
         } catch (Exception e) {

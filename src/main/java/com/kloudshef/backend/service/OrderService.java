@@ -78,17 +78,18 @@ public class OrderService {
         savedOrder.getItems().addAll(orderItems);
         orderRepository.save(savedOrder);
 
-        // Notify cook — rich message with item count and amount
-        String cookFcmToken = cook.getUser() != null ? cook.getUser().getFcmToken() : null;
+        // Notify cook on ALL devices
         int itemCount = orderItems.stream().mapToInt(OrderItem::getQuantity).sum();
         String itemWord = itemCount == 1 ? "item" : "items";
-        fcmService.sendNotification(
-                cookFcmToken,
-                "New Pickup Request!",
-                customer.getFullName() + " ordered " + itemCount + " " + itemWord
-                        + " worth " + totalAmount.stripTrailingZeros().toPlainString(),
-                "new_order"
-        );
+        if (cook.getUser() != null) {
+            fcmService.sendToUser(
+                    cook.getUser().getId(),
+                    "New Pickup Request!",
+                    customer.getFullName() + " ordered " + itemCount + " " + itemWord
+                            + " worth " + totalAmount.stripTrailingZeros().toPlainString(),
+                    "new_order"
+            );
+        }
 
         return getMyOrders(customerId);
     }
@@ -128,8 +129,7 @@ public class OrderService {
             cookRepository.save(cook);
         }
 
-        // Notify customer about status change
-        String customerToken = saved.getCustomer().getFcmToken();
+        // Notify customer on ALL devices
         String kitchen = saved.getCook().getKitchenName();
         record NotifContent(String title, String body) {}
         NotifContent notif = switch (parsed) {
@@ -154,7 +154,7 @@ public class OrderService {
             default             -> null;
         };
         if (notif != null) {
-            fcmService.sendNotification(customerToken, notif.title(), notif.body(), "order_update");
+            fcmService.sendToUser(saved.getCustomer().getId(), notif.title(), notif.body(), "order_update");
         }
 
         return toResponse(saved);

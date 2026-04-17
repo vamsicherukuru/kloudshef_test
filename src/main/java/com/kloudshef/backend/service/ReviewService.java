@@ -58,16 +58,17 @@ public class ReviewService {
         updateCookRating(cook);
         huggingFaceService.refreshReviewSummary(cook.getId());
 
-        // Notify the chef about the new review
-        String cookToken = cook.getUser() != null ? cook.getUser().getFcmToken() : null;
-        String stars = "★".repeat(request.getRating()) + "☆".repeat(5 - request.getRating());
-        fcmService.sendNotification(
-                cookToken,
-                "New Review! " + stars,
-                user.getFirstName() + " left a " + request.getRating() + "-star review"
-                        + (request.getComment() != null ? ": \"" + request.getComment() + "\"" : ""),
-                "new_review"
-        );
+        // Notify the chef on ALL devices
+        if (cook.getUser() != null) {
+            String stars = "★".repeat(request.getRating()) + "☆".repeat(5 - request.getRating());
+            fcmService.sendToUser(
+                    cook.getUser().getId(),
+                    "New Review! " + stars,
+                    user.getFirstName() + " left a " + request.getRating() + "-star review"
+                            + (request.getComment() != null ? ": \"" + request.getComment() + "\"" : ""),
+                    "new_review"
+            );
+        }
 
         return toResponse(review);
     }

@@ -3,10 +3,12 @@ package com.kloudshef.backend.controller;
 import com.kloudshef.backend.dto.request.UpdateProfileRequest;
 import com.kloudshef.backend.dto.response.ApiResponse;
 import com.kloudshef.backend.dto.response.UserResponse;
+import com.kloudshef.backend.entity.DeviceToken;
 import com.kloudshef.backend.entity.User;
 import com.kloudshef.backend.exception.BadRequestException;
 import com.kloudshef.backend.exception.ResourceNotFoundException;
 import com.kloudshef.backend.repository.CookRepository;
+import com.kloudshef.backend.repository.DeviceTokenRepository;
 import com.kloudshef.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,7 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final CookRepository cookRepository;
+    private final DeviceTokenRepository deviceTokenRepository;
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/me")
@@ -47,10 +50,27 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> updateFcmToken(
             @AuthenticationPrincipal User user,
             @RequestBody java.util.Map<String, String> body) {
+        String fcmToken = body.get("fcmToken");
+        String deviceId = body.getOrDefault("deviceId", "unknown");
+        String platform = body.getOrDefault("platform", "unknown");
+
         User managed = userRepository.findById(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        managed.setFcmToken(body.get("fcmToken"));
+
+        // Also keep the legacy single token field in sync (backward compat)
+        managed.setFcmToken(fcmToken);
         userRepository.save(managed);
+
+        // Upsert into device_tokens table
+        DeviceToken dt = deviceTokenRepository.findByUserIdAndDeviceId(user.getId(), deviceId)
+                .orElse(DeviceToken.builder()
+                        .user(managed)
+                        .deviceId(deviceId)
+                        .platform(platform)
+                        .build());
+        dt.setFcmToken(fcmToken);
+        deviceTokenRepository.save(dt);
+
         return ResponseEntity.ok(ApiResponse.success("FCM token updated", null));
     }
 
