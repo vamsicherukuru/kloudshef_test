@@ -80,6 +80,13 @@ public class FcmService {
      * Send notification to ALL devices of a user (multi-device support).
      */
     public void sendToUser(Long userId, String title, String body, String type) {
+        sendToUser(userId, title, body, type, Map.of());
+    }
+
+    /**
+     * Send notification to ALL devices with extra data.
+     */
+    public void sendToUser(Long userId, String title, String body, String type, Map<String, String> extraData) {
         List<DeviceToken> tokens = deviceTokenRepository.findByUserId(userId);
         if (tokens.isEmpty()) {
             log.warn("FCM skip — no device tokens for userId [{}], type [{}]", userId, type);
@@ -87,7 +94,7 @@ public class FcmService {
         }
         log.info("FCM sending [{}] to {} device(s) for userId {}", type, tokens.size(), userId);
         for (DeviceToken dt : tokens) {
-            sendNotification(dt.getFcmToken(), title, body, type);
+            sendNotification(dt.getFcmToken(), title, body, type, extraData);
         }
     }
 
@@ -95,6 +102,10 @@ public class FcmService {
      * Send notification to a single FCM token.
      */
     public void sendNotification(String fcmToken, String title, String body, String type) {
+        sendNotification(fcmToken, title, body, type, Map.of());
+    }
+
+    public void sendNotification(String fcmToken, String title, String body, String type, Map<String, String> extraData) {
         if (fcmToken == null || fcmToken.isBlank()) {
             log.warn("FCM skip — no token for type [{}]", type);
             return;
@@ -110,6 +121,7 @@ public class FcmService {
                             .setBody(body)
                             .build())
                     .putAllData(Map.of("type", type))
+                    .putAllData(extraData)
                     .setAndroidConfig(AndroidConfig.builder()
                             .setPriority(AndroidConfig.Priority.HIGH)
                             .setNotification(AndroidNotification.builder()

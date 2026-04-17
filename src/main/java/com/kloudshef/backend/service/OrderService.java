@@ -164,7 +164,13 @@ public class OrderService {
             default             -> null;
         };
         if (notif != null) {
-            fcmService.sendToUser(saved.getCustomer().getId(), notif.title(), notif.body(), "order_update");
+            var extra = new java.util.HashMap<String, String>();
+            extra.put("orderId", saved.getId().toString());
+            extra.put("status", parsed.name());
+            if (saved.getEstimatedPickupTime() != null) {
+                extra.put("estimatedPickupTime", saved.getEstimatedPickupTime().toString());
+            }
+            fcmService.sendToUser(saved.getCustomer().getId(), notif.title(), notif.body(), "order_update", extra);
         }
 
         return toResponse(saved);
