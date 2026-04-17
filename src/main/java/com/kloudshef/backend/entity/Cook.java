@@ -58,6 +58,8 @@ public class Cook {
 
     private String coverImageUrl;
 
+    private String kitchenImageUrl;
+
     private String availableDays;
 
     private String availableHours;

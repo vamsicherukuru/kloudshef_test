@@ -26,6 +26,7 @@ public class CookDetailResponse {
     private String whatsappNumber;
     private String profileImageUrl;
     private String coverImageUrl;
+    private String kitchenImageUrl;
     private Double averageRating;
     private Integer totalReviews;
     private SubscriptionStatus subscriptionStatus;

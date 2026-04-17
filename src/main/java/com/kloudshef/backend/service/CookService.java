@@ -123,6 +123,7 @@ public class CookService {
         if (request.getWhatsappNumber() != null) cook.setWhatsappNumber(request.getWhatsappNumber());
         if (request.getProfileImageUrl() != null) cook.setProfileImageUrl(request.getProfileImageUrl());
         if (request.getCoverImageUrl() != null) cook.setCoverImageUrl(request.getCoverImageUrl());
+        if (request.getKitchenImageUrl() != null) cook.setKitchenImageUrl(request.getKitchenImageUrl());
         if (request.getAvailableDays() != null) cook.setAvailableDays(request.getAvailableDays());
         if (request.getAvailableHours() != null) cook.setAvailableHours(request.getAvailableHours());
         if (request.getWelcomeMessage() != null) cook.setWelcomeMessage(request.getWelcomeMessage());
@@ -181,6 +182,7 @@ public class CookService {
                         .price(item.getPrice())
                         .category(item.getCategory())
                         .imageUrl(item.getImageUrl())
+                        .tags(item.getTags())
                         .available(item.isAvailable())
                         .isVegetarian(item.isVegetarian())
                         .createdAt(item.getCreatedAt())
@@ -204,6 +206,7 @@ public class CookService {
                 .whatsappNumber(cook.getWhatsappNumber())
                 .profileImageUrl(cook.getProfileImageUrl())
                 .coverImageUrl(cook.getCoverImageUrl())
+                .kitchenImageUrl(cook.getKitchenImageUrl())
                 .averageRating(cook.getAverageRating())
                 .totalReviews(cook.getTotalReviews())
                 .subscriptionStatus(cook.getSubscriptionStatus())

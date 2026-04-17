@@ -22,6 +22,7 @@ public class CookProfileRequest {
     private String whatsappNumber;
     private String profileImageUrl;
     private String coverImageUrl;
+    private String kitchenImageUrl;
     private String availableDays;
     private String availableHours;
     private String welcomeMessage;

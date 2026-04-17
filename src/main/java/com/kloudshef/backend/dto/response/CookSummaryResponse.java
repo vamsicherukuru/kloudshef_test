@@ -17,6 +17,7 @@ public class CookSummaryResponse {
     private String country;
     private String profileImageUrl;
     private String coverImageUrl;
+    private String kitchenImageUrl;
     private Double averageRating;
     private Integer totalReviews;
     private SubscriptionStatus subscriptionStatus;
