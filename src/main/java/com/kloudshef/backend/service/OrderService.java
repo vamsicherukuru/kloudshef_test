@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -109,7 +110,7 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse updateOrderStatus(Long orderId, Long cookId, String newStatus) {
+    public OrderResponse updateOrderStatus(Long orderId, Long cookId, String newStatus, Integer estimatedPickupMinutes) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
 
@@ -120,6 +121,12 @@ public class OrderService {
         OrderStatus parsed = OrderStatus.valueOf(newStatus);
         OrderStatus previous = order.getStatus();
         order.setStatus(parsed);
+
+        // Set estimated pickup time when cook accepts (or updates it)
+        if (estimatedPickupMinutes != null && estimatedPickupMinutes > 0) {
+            order.setEstimatedPickupTime(LocalDateTime.now().plusMinutes(estimatedPickupMinutes));
+        }
+
         Order saved = orderRepository.save(order);
 
         // Increment cook's completed orders count when an order reaches COMPLETED
@@ -134,8 +141,11 @@ public class OrderService {
         record NotifContent(String title, String body) {}
         NotifContent notif = switch (parsed) {
             case ACCEPTED       -> new NotifContent(
-                    "Order Accepted!",
-                    kitchen + " accepted your request and will start preparing soon.");
+                    "Order Accepted! ✅",
+                    kitchen + " accepted your order."
+                            + (saved.getEstimatedPickupTime() != null
+                                ? " Estimated pickup: ~" + estimatedPickupMinutes + " min."
+                                : ""));
             case PREPARING      -> new NotifContent(
                     "Being Prepared",
                     kitchen + " is cooking your order right now. Hang tight!");
@@ -187,6 +197,7 @@ public class OrderService {
                 .status(order.getStatus().name())
                 .totalAmount(order.getTotalAmount())
                 .deliveryNote(order.getDeliveryNote())
+                .estimatedPickupTime(order.getEstimatedPickupTime())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .build();

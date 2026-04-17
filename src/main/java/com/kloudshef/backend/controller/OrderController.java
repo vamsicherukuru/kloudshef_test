@@ -52,6 +52,6 @@ public class OrderController {
         Long cookId = cookRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new com.kloudshef.backend.exception.ResourceNotFoundException("Cook profile not found"))
                 .getId();
-        return ResponseEntity.ok(ApiResponse.success(orderService.updateOrderStatus(id, cookId, request.getStatus())));
+        return ResponseEntity.ok(ApiResponse.success(orderService.updateOrderStatus(id, cookId, request.getStatus(), request.getEstimatedPickupMinutes())));
     }
 }
