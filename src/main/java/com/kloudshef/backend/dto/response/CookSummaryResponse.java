@@ -8,6 +8,7 @@ import lombok.Data;
 @Builder
 public class CookSummaryResponse {
     private Long id;
+    private String fullName;
     private String kitchenName;
     private String cookingStyle;
     private String kitchenType;

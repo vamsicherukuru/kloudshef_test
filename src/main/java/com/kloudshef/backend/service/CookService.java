@@ -153,6 +153,7 @@ public class CookService {
                 ? Math.round(distanceKm * 10.0) / 10.0 : null;
         return CookSummaryResponse.builder()
                 .id(cook.getId())
+                .fullName(cook.getUser() != null ? cook.getUser().getFullName() : null)
                 .kitchenName(cook.getKitchenName())
                 .cookingStyle(cook.getCookingStyle())
                 .kitchenType(cook.getKitchenType())
@@ -191,6 +192,7 @@ public class CookService {
 
         return CookDetailResponse.builder()
                 .id(cook.getId())
+                .fullName(cook.getUser() != null ? cook.getUser().getFullName() : null)
                 .kitchenName(cook.getKitchenName())
                 .bio(cook.getBio())
                 .cookingStyle(cook.getCookingStyle())
