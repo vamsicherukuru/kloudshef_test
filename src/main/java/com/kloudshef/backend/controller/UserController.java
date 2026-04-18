@@ -9,6 +9,9 @@ import com.kloudshef.backend.exception.BadRequestException;
 import com.kloudshef.backend.exception.ResourceNotFoundException;
 import com.kloudshef.backend.repository.CookRepository;
 import com.kloudshef.backend.repository.DeviceTokenRepository;
+import com.kloudshef.backend.repository.OrderRepository;
+import com.kloudshef.backend.repository.ReviewRepository;
+import com.kloudshef.backend.repository.MenuItemRepository;
 import com.kloudshef.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +27,9 @@ public class UserController {
     private final UserRepository userRepository;
     private final CookRepository cookRepository;
     private final DeviceTokenRepository deviceTokenRepository;
+    private final OrderRepository orderRepository;
+    private final ReviewRepository reviewRepository;
+    private final MenuItemRepository menuItemRepository;
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/me")
@@ -125,5 +131,52 @@ public class UserController {
                 .build();
 
         return ResponseEntity.ok(ApiResponse.success("Profile updated", response));
+    }
+
+    @DeleteMapping("/me")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<ApiResponse<Void>> deleteMe(
+            @AuthenticationPrincipal User user,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+
+        User managed = userRepository.findById(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Verify password if provided (extra safety)
+        if (body != null && body.containsKey("password")) {
+            if (!passwordEncoder.matches(body.get("password"), managed.getPassword())) {
+                throw new BadRequestException("Incorrect password");
+            }
+        }
+
+        // Check for active orders
+        long activeOrders = orderRepository.countByCustomer_IdAndStatusIn(
+            user.getId(),
+            java.util.List.of(
+                com.kloudshef.backend.entity.OrderStatus.PENDING,
+                com.kloudshef.backend.entity.OrderStatus.ACCEPTED,
+                com.kloudshef.backend.entity.OrderStatus.PREPARING,
+                com.kloudshef.backend.entity.OrderStatus.PACKING,
+                com.kloudshef.backend.entity.OrderStatus.READY_TO_PICKUP
+            )
+        );
+        if (activeOrders > 0) {
+            throw new BadRequestException("Cannot delete account with active orders. Please complete or cancel them first.");
+        }
+
+        // Clean up all related data
+        deviceTokenRepository.deleteByUserId(user.getId());
+        reviewRepository.findByUserId(user.getId()).forEach(r -> reviewRepository.delete(r));
+
+        // If cook, remove menu items and cook profile
+        cookRepository.findByUserId(user.getId()).ifPresent(cook -> {
+            menuItemRepository.deleteByCookId(cook.getId());
+            cookRepository.delete(cook);
+        });
+
+        // Delete the user
+        userRepository.delete(managed);
+
+        return ResponseEntity.ok(ApiResponse.success("Account deleted successfully", null));
     }
 }

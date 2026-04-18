@@ -8,4 +8,5 @@ import java.util.List;
 public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     List<MenuItem> findByCookId(Long cookId);
     List<MenuItem> findByCookIdAndAvailableTrue(Long cookId);
+    void deleteByCookId(Long cookId);
 }
