@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public class FollowResponse {
     private Long cookId;
     private String kitchenName;
+    private String kitchenHandle;
     private String profileImageUrl;
     private String city;
     private Double averageRating;

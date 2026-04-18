@@ -15,6 +15,10 @@ public interface CookRepository extends JpaRepository<Cook, Long> {
 
     Optional<Cook> findByUserId(Long userId);
 
+    Optional<Cook> findByKitchenHandle(String kitchenHandle);
+
+    boolean existsByKitchenHandle(String kitchenHandle);
+
     @Query("SELECT c FROM Cook c WHERE c.subscriptionStatus IN :statuses AND LOWER(c.city) = LOWER(:city)")
     Page<Cook> findByStatusesAndCity(@Param("statuses") List<SubscriptionStatus> statuses,
                                      @Param("city") String city, Pageable pageable);
@@ -25,6 +29,7 @@ public interface CookRepository extends JpaRepository<Cook, Long> {
     @Query("SELECT c FROM Cook c WHERE c.subscriptionStatus IN :statuses AND " +
            "(LOWER(c.city) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(c.kitchenName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(c.kitchenHandle) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(c.cookingStyle) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(c.specialties) LIKE LOWER(CONCAT('%', :query, '%')))")
     Page<Cook> searchActiveCooks(@Param("statuses") List<SubscriptionStatus> statuses,

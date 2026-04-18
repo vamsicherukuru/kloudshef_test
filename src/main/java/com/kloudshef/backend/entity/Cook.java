@@ -27,6 +27,9 @@ public class Cook {
     @Column(nullable = false)
     private String kitchenName;
 
+    @Column(unique = true)
+    private String kitchenHandle;
+
     private LocalDate dateOfBirth;
 
     @Column(columnDefinition = "TEXT")

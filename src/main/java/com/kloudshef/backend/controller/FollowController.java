@@ -81,6 +81,7 @@ public class FollowController {
                     return FollowResponse.builder()
                             .cookId(c.getId())
                             .kitchenName(c.getKitchenName())
+                            .kitchenHandle(c.getKitchenHandle())
                             .profileImageUrl(c.getProfileImageUrl())
                             .city(c.getCity())
                             .averageRating(c.getAverageRating())

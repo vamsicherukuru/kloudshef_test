@@ -34,6 +34,7 @@ public class RegisterRequest {
 
     // Cook-only fields
     private String kitchenName;
+    private String kitchenHandle;
     private LocalDate dateOfBirth;
 
     @AssertTrue(message = "You must accept the Terms & Conditions")

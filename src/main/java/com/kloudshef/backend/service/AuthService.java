@@ -55,9 +55,11 @@ public class AuthService {
             String kitchenName = (request.getKitchenName() != null && !request.getKitchenName().isBlank())
                     ? request.getKitchenName().trim()
                     : fullName + "'s Kitchen";
+            String handle = generateHandle(request.getKitchenHandle(), kitchenName);
             Cook cook = Cook.builder()
                     .user(user)
                     .kitchenName(kitchenName)
+                    .kitchenHandle(handle)
                     .city(user.getCity())
                     .dateOfBirth(request.getDateOfBirth())
                     .build();
@@ -95,5 +97,30 @@ public class AuthService {
                 .role(user.getRole())
                 .cookId(cookId)
                 .build();
+    }
+
+    /**
+     * Generates a unique kitchen handle.
+     */
+    private String generateHandle(String requested, String kitchenName) {
+        if (requested != null && !requested.isBlank()) {
+            String clean = requested.trim().toLowerCase()
+                    .replaceAll("[^a-z0-9_]", "");
+            if (!clean.isEmpty() && !cookRepository.existsByKitchenHandle(clean)) {
+                return clean;
+            }
+        }
+        String base = kitchenName.toLowerCase()
+                .replaceAll("[^a-z0-9 ]", "")
+                .trim()
+                .replaceAll("\\s+", "_");
+        if (base.isEmpty()) base = "kitchen";
+        String candidate = base;
+        int suffix = 1;
+        while (cookRepository.existsByKitchenHandle(candidate)) {
+            candidate = base + "_" + suffix;
+            suffix++;
+        }
+        return candidate;
     }
 }

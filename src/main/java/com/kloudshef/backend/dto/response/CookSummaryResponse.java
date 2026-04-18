@@ -10,6 +10,7 @@ public class CookSummaryResponse {
     private Long id;
     private String fullName;
     private String kitchenName;
+    private String kitchenHandle;
     private String cookingStyle;
     private String kitchenType;
     private String specialties;

@@ -8,6 +8,7 @@ import java.time.LocalDate;
 public class CookProfileRequest {
     private LocalDate dateOfBirth;
     private String kitchenName;
+    private String kitchenHandle;
     private String bio;
     private String kitchenType;
     private String cookingStyle;

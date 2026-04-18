@@ -13,6 +13,7 @@ public class CookDetailResponse {
     private Long id;
     private String fullName;
     private String kitchenName;
+    private String kitchenHandle;
     private String bio;
     private String cookingStyle;
     private String kitchenType;

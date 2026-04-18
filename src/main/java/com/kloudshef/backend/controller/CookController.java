@@ -53,6 +53,18 @@ public class CookController {
         return ResponseEntity.ok(ApiResponse.success(cookService.getAvailableCities()));
     }
 
+    @GetMapping("/handle-available")
+    public ResponseEntity<ApiResponse<Boolean>> checkHandleAvailable(@RequestParam String handle) {
+        String clean = handle.trim().toLowerCase().replaceAll("[^a-z0-9_]", "");
+        boolean available = !clean.isEmpty() && clean.length() >= 3 && !cookService.isHandleTaken(clean);
+        return ResponseEntity.ok(ApiResponse.success(available));
+    }
+
+    @GetMapping("/by-handle/{handle}")
+    public ResponseEntity<ApiResponse<CookSummaryResponse>> getByHandle(@PathVariable String handle) {
+        return ResponseEntity.ok(ApiResponse.success(cookService.getCookByHandle(handle)));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CookDetailResponse>> getCookById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(cookService.getCookById(id)));

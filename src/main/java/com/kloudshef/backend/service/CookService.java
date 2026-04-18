@@ -111,6 +111,15 @@ public class CookService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cook profile not found"));
 
         if (request.getKitchenName() != null) cook.setKitchenName(request.getKitchenName());
+        if (request.getKitchenHandle() != null) {
+            String handle = request.getKitchenHandle().trim().toLowerCase().replaceAll("[^a-z0-9_]", "");
+            if (!handle.isEmpty() && !handle.equals(cook.getKitchenHandle())) {
+                if (cookRepository.existsByKitchenHandle(handle)) {
+                    throw new com.kloudshef.backend.exception.BadRequestException("Handle @" + handle + " is already taken");
+                }
+                cook.setKitchenHandle(handle);
+            }
+        }
         if (request.getBio() != null) cook.setBio(request.getBio());
         if (request.getKitchenType() != null) cook.setKitchenType(request.getKitchenType());
         if (request.getCookingStyle() != null) cook.setCookingStyle(request.getCookingStyle());
@@ -138,6 +147,16 @@ public class CookService {
         return cookRepository.findDistinctActiveCities();
     }
 
+    public boolean isHandleTaken(String handle) {
+        return cookRepository.existsByKitchenHandle(handle);
+    }
+
+    public CookSummaryResponse getCookByHandle(String handle) {
+        Cook cook = cookRepository.findByKitchenHandle(handle.toLowerCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Kitchen not found with handle: @" + handle));
+        return toSummary(cook, null);
+    }
+
     public List<CookSummaryResponse> getSimilarCooks(Long cookId) {
         Cook cook = cookRepository.findById(cookId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cook not found"));
@@ -157,6 +176,7 @@ public class CookService {
                 .id(cook.getId())
                 .fullName(cook.getUser() != null ? cook.getUser().getFullName() : null)
                 .kitchenName(cook.getKitchenName())
+                .kitchenHandle(cook.getKitchenHandle())
                 .cookingStyle(cook.getCookingStyle())
                 .kitchenType(cook.getKitchenType())
                 .specialties(cook.getSpecialties())
@@ -197,6 +217,7 @@ public class CookService {
                 .id(cook.getId())
                 .fullName(cook.getUser() != null ? cook.getUser().getFullName() : null)
                 .kitchenName(cook.getKitchenName())
+                .kitchenHandle(cook.getKitchenHandle())
                 .bio(cook.getBio())
                 .cookingStyle(cook.getCookingStyle())
                 .kitchenType(cook.getKitchenType())
