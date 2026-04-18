@@ -26,5 +26,6 @@ public class CookProfileRequest {
     private String kitchenImageUrl;
     private String availableDays;
     private String availableHours;
+    private Boolean availableNow;
     private String welcomeMessage;
 }

@@ -25,6 +25,7 @@ public class CookSummaryResponse {
     private SubscriptionStatus subscriptionStatus;
     private String availableDays;
     private String availableHours;
+    private Boolean availableNow;
     private Integer totalOrders;
     private Double distanceKm;
     private Long followerCount;

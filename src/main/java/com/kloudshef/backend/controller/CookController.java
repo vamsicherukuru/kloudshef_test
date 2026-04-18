@@ -99,4 +99,15 @@ public class CookController {
         return ResponseEntity.ok(ApiResponse.success("Profile updated",
                 cookService.updateCookProfile(user.getId(), request)));
     }
+
+    @PutMapping("/my-profile/availability")
+    @PreAuthorize("hasRole('COOK')")
+    public ResponseEntity<ApiResponse<CookDetailResponse>> toggleAvailability(
+            @AuthenticationPrincipal User user,
+            @RequestBody java.util.Map<String, Boolean> body) {
+        boolean availableNow = Boolean.TRUE.equals(body.get("availableNow"));
+        return ResponseEntity.ok(ApiResponse.success(
+                availableNow ? "You're now available" : "You're now offline",
+                cookService.toggleAvailability(user.getId(), availableNow)));
+    }
 }

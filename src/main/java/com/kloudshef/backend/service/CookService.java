@@ -30,6 +30,7 @@ public class CookService {
 
     private final CookRepository cookRepository;
     private final FollowRepository followRepository;
+    private final FcmService fcmService;
 
     private static final List<SubscriptionStatus> VISIBLE_STATUSES =
             Arrays.asList(SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL);
@@ -175,10 +176,32 @@ public class CookService {
         if (request.getKitchenImageUrl() != null) cook.setKitchenImageUrl(request.getKitchenImageUrl());
         if (request.getAvailableDays() != null) cook.setAvailableDays(request.getAvailableDays());
         if (request.getAvailableHours() != null) cook.setAvailableHours(request.getAvailableHours());
+        if (request.getAvailableNow() != null) cook.setAvailableNow(request.getAvailableNow());
         if (request.getWelcomeMessage() != null) cook.setWelcomeMessage(request.getWelcomeMessage());
         if (request.getDateOfBirth() != null) cook.setDateOfBirth(request.getDateOfBirth());
 
         return toDetail(cookRepository.save(cook));
+    }
+
+    @Transactional
+    public CookDetailResponse toggleAvailability(Long userId, boolean availableNow) {
+        Cook cook = cookRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cook profile not found"));
+        cook.setAvailableNow(availableNow);
+        cook = cookRepository.save(cook);
+
+        // Notify followers when cook goes online
+        if (availableNow) {
+            List<Long> followerIds = followRepository.findFollowerUserIdsByCookId(cook.getId());
+            String title = cook.getKitchenName() + " is now available!";
+            String body = "Order fresh homemade food from " + cook.getKitchenName() + " while they're online.";
+            for (Long followerId : followerIds) {
+                fcmService.sendToUser(followerId, title, body, "cook_available",
+                        java.util.Map.of("cookId", cook.getId().toString()));
+            }
+        }
+
+        return toDetail(cook);
     }
 
     public List<String> getAvailableCities() {
@@ -229,6 +252,7 @@ public class CookService {
                 .subscriptionStatus(cook.getSubscriptionStatus())
                 .availableDays(cook.getAvailableDays())
                 .availableHours(cook.getAvailableHours())
+                .availableNow(cook.getAvailableNow() != null ? cook.getAvailableNow() : false)
                 .totalOrders(cook.getTotalOrders())
                 .distanceKm(rounded)
                 .followerCount(followRepository.countByCookId(cook.getId()))
@@ -276,6 +300,7 @@ public class CookService {
                 .subscriptionStatus(cook.getSubscriptionStatus())
                 .availableDays(cook.getAvailableDays())
                 .availableHours(cook.getAvailableHours())
+                .availableNow(cook.getAvailableNow() != null ? cook.getAvailableNow() : false)
                 .menuItems(menuItems)
                 .welcomeMessage(cook.getWelcomeMessage())
                 .totalOrders(cook.getTotalOrders())

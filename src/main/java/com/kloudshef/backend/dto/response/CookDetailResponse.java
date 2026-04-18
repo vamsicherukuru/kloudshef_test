@@ -34,6 +34,7 @@ public class CookDetailResponse {
     private SubscriptionStatus subscriptionStatus;
     private String availableDays;
     private String availableHours;
+    private Boolean availableNow;
     private List<MenuItemResponse> menuItems;
     private String welcomeMessage;
     private Integer totalOrders;

@@ -74,6 +74,9 @@ public class Cook {
     private String reviewSummary;
 
     @Builder.Default
+    private Boolean availableNow = false;
+
+    @Builder.Default
     private Integer totalOrders = 0;
 
     @Builder.Default
