@@ -35,15 +35,58 @@ public class CookService {
             Arrays.asList(SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL);
 
     public Page<CookSummaryResponse> browseCooks(String city, Double userLat, Double userLng,
-                                                  Double radiusKm, Pageable pageable) {
-        if (userLat != null && userLng != null) {
-            // Fetch all matching cooks, calculate distance in memory, then paginate
-            List<Cook> all = (city != null && !city.isBlank())
+                                                  Double radiusKm, String cookingStyle,
+                                                  String kitchenType, String specialties,
+                                                  Double minRating, Pageable pageable) {
+        // Build a base stream, then apply filters in memory for flexibility
+        List<Cook> all;
+        if (city != null && !city.isBlank()) {
+            all = (userLat != null && userLng != null)
                     ? cookRepository.findAllByStatusesAndCity(VISIBLE_STATUSES, city)
-                    : cookRepository.findAllByStatuses(VISIBLE_STATUSES);
+                    : new ArrayList<>(cookRepository.findByStatusesAndCity(VISIBLE_STATUSES, city, pageable).getContent());
+        } else {
+            all = (userLat != null && userLng != null)
+                    ? cookRepository.findAllByStatuses(VISIBLE_STATUSES)
+                    : new ArrayList<>(cookRepository.findByStatuses(VISIBLE_STATUSES, Pageable.unpaged()).getContent());
+        }
 
-            // Cooks with known coordinates — compute distance, optionally filter by radius
-            List<CookSummaryResponse> withDist = all.stream()
+        // Apply quick filters
+        var stream = all.stream();
+        if (cookingStyle != null && !cookingStyle.isBlank()) {
+            final String cs = cookingStyle.toLowerCase();
+            stream = stream.filter(c -> {
+                String s = c.getCookingStyle();
+                String sp = c.getSpecialties();
+                return (s != null && s.toLowerCase().contains(cs))
+                    || (sp != null && sp.toLowerCase().contains(cs));
+            });
+        }
+        if (kitchenType != null && !kitchenType.isBlank()) {
+            final String kt = kitchenType.toLowerCase();
+            stream = stream.filter(c -> {
+                String t = c.getKitchenType();
+                return t != null && t.toLowerCase().contains(kt);
+            });
+        }
+        if (specialties != null && !specialties.isBlank()) {
+            final String sp = specialties.toLowerCase();
+            stream = stream.filter(c -> {
+                String s = c.getSpecialties();
+                String cs2 = c.getCookingStyle();
+                String kn = c.getKitchenName();
+                return (s != null && s.toLowerCase().contains(sp))
+                    || (cs2 != null && cs2.toLowerCase().contains(sp))
+                    || (kn != null && kn.toLowerCase().contains(sp));
+            });
+        }
+        if (minRating != null) {
+            stream = stream.filter(c -> c.getAverageRating() >= minRating);
+        }
+
+        // Compute distances if user location available
+        List<CookSummaryResponse> results;
+        if (userLat != null && userLng != null) {
+            List<CookSummaryResponse> withDist = stream
                     .filter(c -> c.getLatitude() != null && c.getLongitude() != null)
                     .map(c -> {
                         double d = haversine(userLat, userLng, c.getLatitude(), c.getLongitude());
@@ -60,21 +103,16 @@ public class CookService {
                         .map(c -> toSummary(c, null))
                         .forEach(withDist::add);
             }
-
-            int start = (int) pageable.getOffset();
-            int end   = Math.min(start + pageable.getPageSize(), withDist.size());
-            List<CookSummaryResponse> page = start >= withDist.size()
-                    ? new ArrayList<>() : withDist.subList(start, end);
-            return new PageImpl<>(page, pageable, withDist.size());
+            results = withDist;
+        } else {
+            results = stream.map(c -> toSummary(c, null)).collect(Collectors.toList());
         }
 
-        // No location — sort by rating as before
-        if (city != null && !city.isBlank()) {
-            return cookRepository.findByStatusesAndCity(VISIBLE_STATUSES, city, pageable)
-                    .map(c -> toSummary(c, null));
-        }
-        return cookRepository.findByStatuses(VISIBLE_STATUSES, pageable)
-                .map(c -> toSummary(c, null));
+        int start = (int) pageable.getOffset();
+        int end   = Math.min(start + pageable.getPageSize(), results.size());
+        List<CookSummaryResponse> page = start >= results.size()
+                ? new ArrayList<>() : results.subList(start, end);
+        return new PageImpl<>(page, pageable, results.size());
     }
 
     /** Haversine formula — returns distance in kilometres. */

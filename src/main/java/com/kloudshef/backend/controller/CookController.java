@@ -32,10 +32,15 @@ public class CookController {
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lng,
             @RequestParam(required = false) Double radiusKm,
+            @RequestParam(required = false) String cookingStyle,
+            @RequestParam(required = false) String kitchenType,
+            @RequestParam(required = false) String specialties,
+            @RequestParam(required = false) Double minRating,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(ApiResponse.success(
                 cookService.browseCooks(city, lat, lng, radiusKm,
+                        cookingStyle, kitchenType, specialties, minRating,
                         PageRequest.of(page, size, Sort.by("averageRating").descending()))));
     }
 
