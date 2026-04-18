@@ -41,7 +41,9 @@ public class MenuItem {
     @Builder.Default
     private boolean available = true;
 
-    private boolean vegetarian;
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean vegetarian = false;
 
     @Column(updatable = false)
     private LocalDateTime createdAt;

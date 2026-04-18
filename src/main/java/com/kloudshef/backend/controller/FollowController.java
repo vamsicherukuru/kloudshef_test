@@ -9,6 +9,7 @@ import com.kloudshef.backend.exception.BadRequestException;
 import com.kloudshef.backend.exception.ResourceNotFoundException;
 import com.kloudshef.backend.repository.CookRepository;
 import com.kloudshef.backend.repository.FollowRepository;
+import com.kloudshef.backend.service.FcmService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,6 +27,7 @@ public class FollowController {
 
     private final FollowRepository followRepository;
     private final CookRepository cookRepository;
+    private final FcmService fcmService;
 
     @PostMapping("/cook/{cookId}")
     @PreAuthorize("isAuthenticated()")
@@ -40,6 +42,19 @@ public class FollowController {
         }
         Follow follow = Follow.builder().user(user).cook(cook).build();
         followRepository.save(follow);
+
+        // Notify the cook about the new follower
+        if (cook.getUser() != null) {
+            long followerCount = followRepository.countByCookId(cookId);
+            fcmService.sendToUser(
+                    cook.getUser().getId(),
+                    "New Follower! ❤️",
+                    user.getFirstName() + " is now following " + cook.getKitchenName()
+                            + " • " + followerCount + " follower" + (followerCount != 1 ? "s" : ""),
+                    "new_follower"
+            );
+        }
+
         return ResponseEntity.ok(ApiResponse.success("Following kitchen", null));
     }
 
