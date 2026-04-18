@@ -7,12 +7,14 @@ import com.kloudshef.backend.entity.MenuItem;
 import com.kloudshef.backend.exception.BadRequestException;
 import com.kloudshef.backend.exception.ResourceNotFoundException;
 import com.kloudshef.backend.repository.CookRepository;
+import com.kloudshef.backend.repository.FollowRepository;
 import com.kloudshef.backend.repository.MenuItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +22,8 @@ public class MenuItemService {
 
     private final MenuItemRepository menuItemRepository;
     private final CookRepository cookRepository;
+    private final FollowRepository followRepository;
+    private final FcmService fcmService;
 
     public List<MenuItemResponse> getMenuItemsByCookId(Long cookId) {
         return menuItemRepository.findByCookId(cookId).stream()
@@ -41,7 +45,20 @@ public class MenuItemService {
                 .available(request.isAvailable())
                 .vegetarian(request.isVegetarian())
                 .build();
-        return toResponse(menuItemRepository.save(item));
+        MenuItemResponse response = toResponse(menuItemRepository.save(item));
+
+        // Notify followers about the new dish
+        List<Long> followerIds = followRepository.findFollowerUserIdsByCookId(cook.getId());
+        if (!followerIds.isEmpty()) {
+            String title = "🍽 New dish from " + cook.getKitchenName() + "!";
+            String body = request.getName() + (request.getDescription() != null ? " — " + request.getDescription() : "");
+            Map<String, String> data = Map.of("cookId", cook.getId().toString());
+            for (Long followerId : followerIds) {
+                fcmService.sendToUser(followerId, title, body, "new_dish", data);
+            }
+        }
+
+        return response;
     }
 
     @Transactional

@@ -12,6 +12,7 @@ public class UserResponse {
     private String phone;
     private String city;
     private String profileImageUrl;
+    private boolean dpPublic;
     private String role;
     private Long cookId;
 }

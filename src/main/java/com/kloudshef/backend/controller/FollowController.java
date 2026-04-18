@@ -1,0 +1,84 @@
+package com.kloudshef.backend.controller;
+
+import com.kloudshef.backend.dto.response.ApiResponse;
+import com.kloudshef.backend.dto.response.FollowResponse;
+import com.kloudshef.backend.entity.Cook;
+import com.kloudshef.backend.entity.Follow;
+import com.kloudshef.backend.entity.User;
+import com.kloudshef.backend.exception.BadRequestException;
+import com.kloudshef.backend.exception.ResourceNotFoundException;
+import com.kloudshef.backend.repository.CookRepository;
+import com.kloudshef.backend.repository.FollowRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/follows")
+@RequiredArgsConstructor
+public class FollowController {
+
+    private final FollowRepository followRepository;
+    private final CookRepository cookRepository;
+
+    @PostMapping("/cook/{cookId}")
+    @PreAuthorize("isAuthenticated()")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> follow(
+            @PathVariable Long cookId,
+            @AuthenticationPrincipal User user) {
+        Cook cook = cookRepository.findById(cookId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cook not found"));
+        if (followRepository.existsByUserIdAndCookId(user.getId(), cookId)) {
+            throw new BadRequestException("Already following this kitchen");
+        }
+        Follow follow = Follow.builder().user(user).cook(cook).build();
+        followRepository.save(follow);
+        return ResponseEntity.ok(ApiResponse.success("Following kitchen", null));
+    }
+
+    @DeleteMapping("/cook/{cookId}")
+    @PreAuthorize("isAuthenticated()")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> unfollow(
+            @PathVariable Long cookId,
+            @AuthenticationPrincipal User user) {
+        followRepository.deleteByUserIdAndCookId(user.getId(), cookId);
+        return ResponseEntity.ok(ApiResponse.success("Unfollowed kitchen", null));
+    }
+
+    @GetMapping("/my")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<FollowResponse>>> myFollowing(
+            @AuthenticationPrincipal User user) {
+        List<FollowResponse> list = followRepository.findByUserId(user.getId()).stream()
+                .map(f -> {
+                    Cook c = f.getCook();
+                    return FollowResponse.builder()
+                            .cookId(c.getId())
+                            .kitchenName(c.getKitchenName())
+                            .profileImageUrl(c.getProfileImageUrl())
+                            .city(c.getCity())
+                            .averageRating(c.getAverageRating())
+                            .totalReviews(c.getTotalReviews())
+                            .followedAt(f.getCreatedAt())
+                            .build();
+                }).toList();
+        return ResponseEntity.ok(ApiResponse.success(list));
+    }
+
+    @GetMapping("/check/{cookId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkFollow(
+            @PathVariable Long cookId,
+            @AuthenticationPrincipal User user) {
+        boolean following = followRepository.existsByUserIdAndCookId(user.getId(), cookId);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("following", following)));
+    }
+}

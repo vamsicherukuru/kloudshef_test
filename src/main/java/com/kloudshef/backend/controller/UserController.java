@@ -9,6 +9,7 @@ import com.kloudshef.backend.exception.BadRequestException;
 import com.kloudshef.backend.exception.ResourceNotFoundException;
 import com.kloudshef.backend.repository.CookRepository;
 import com.kloudshef.backend.repository.DeviceTokenRepository;
+import com.kloudshef.backend.repository.FollowRepository;
 import com.kloudshef.backend.repository.OrderRepository;
 import com.kloudshef.backend.repository.ReviewRepository;
 import com.kloudshef.backend.repository.MenuItemRepository;
@@ -27,6 +28,7 @@ public class UserController {
     private final UserRepository userRepository;
     private final CookRepository cookRepository;
     private final DeviceTokenRepository deviceTokenRepository;
+    private final FollowRepository followRepository;
     private final OrderRepository orderRepository;
     private final ReviewRepository reviewRepository;
     private final MenuItemRepository menuItemRepository;
@@ -45,6 +47,7 @@ public class UserController {
                 .phone(user.getPhone())
                 .city(user.getCity())
                 .profileImageUrl(user.getProfileImageUrl())
+                .dpPublic(user.isDpPublic())
                 .role(user.getRole().name())
                 .cookId(cookId)
                 .build();
@@ -105,6 +108,7 @@ public class UserController {
         if (request.getPhone() != null) managedUser.setPhone(request.getPhone());
         if (request.getCity() != null) managedUser.setCity(request.getCity());
         if (request.getProfileImageUrl() != null) managedUser.setProfileImageUrl(request.getProfileImageUrl());
+        if (request.getDpPublic() != null) managedUser.setDpPublic(request.getDpPublic());
 
         if (request.getCurrentPassword() != null && request.getNewPassword() != null) {
             if (!passwordEncoder.matches(request.getCurrentPassword(), managedUser.getPassword())) {
@@ -126,6 +130,7 @@ public class UserController {
                 .phone(savedUser.getPhone())
                 .city(savedUser.getCity())
                 .profileImageUrl(savedUser.getProfileImageUrl())
+                .dpPublic(savedUser.isDpPublic())
                 .role(savedUser.getRole().name())
                 .cookId(cookId)
                 .build();
@@ -165,6 +170,7 @@ public class UserController {
         }
 
         // Clean up all related data
+        followRepository.deleteByUserId(user.getId());
         deviceTokenRepository.deleteByUserId(user.getId());
         reviewRepository.findByUserId(user.getId()).forEach(r -> reviewRepository.delete(r));
 

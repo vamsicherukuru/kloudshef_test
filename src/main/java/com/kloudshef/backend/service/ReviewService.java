@@ -111,13 +111,14 @@ public class ReviewService {
     }
 
     private ReviewResponse toResponse(Review review) {
+        User reviewer = review.getUser();
         return ReviewResponse.builder()
                 .id(review.getId())
-                .reviewerUserId(review.getUser().getId())
+                .reviewerUserId(reviewer.getId())
                 .rating(review.getRating())
                 .comment(review.getComment())
-                .reviewerName(review.getUser().getFullName())
-                .reviewerImageUrl(review.getUser().getProfileImageUrl())
+                .reviewerName(reviewer.getFullName())
+                .reviewerImageUrl(reviewer.isDpPublic() ? reviewer.getProfileImageUrl() : null)
                 .createdAt(review.getCreatedAt())
                 .build();
     }

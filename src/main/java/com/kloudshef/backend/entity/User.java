@@ -45,6 +45,10 @@ public class User implements UserDetails {
 
     private String profileImageUrl;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean dpPublic = true;
+
     @Column(length = 512)
     private String fcmToken;
 
