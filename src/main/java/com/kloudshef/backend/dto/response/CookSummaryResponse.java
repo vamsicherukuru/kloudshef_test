@@ -26,4 +26,5 @@ public class CookSummaryResponse {
     private String availableHours;
     private Integer totalOrders;
     private Double distanceKm;
+    private Long followerCount;
 }

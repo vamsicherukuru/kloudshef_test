@@ -38,4 +38,5 @@ public class CookDetailResponse {
     private Integer totalOrders;
     private LocalDate dateOfBirth;
     private String reviewSummary;
+    private Long followerCount;
 }

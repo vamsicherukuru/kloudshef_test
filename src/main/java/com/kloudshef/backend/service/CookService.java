@@ -8,6 +8,7 @@ import com.kloudshef.backend.entity.Cook;
 import com.kloudshef.backend.entity.SubscriptionStatus;
 import com.kloudshef.backend.exception.ResourceNotFoundException;
 import com.kloudshef.backend.repository.CookRepository;
+import com.kloudshef.backend.repository.FollowRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 public class CookService {
 
     private final CookRepository cookRepository;
+    private final FollowRepository followRepository;
 
     private static final List<SubscriptionStatus> VISIBLE_STATUSES =
             Arrays.asList(SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL);
@@ -171,6 +173,7 @@ public class CookService {
                 .availableHours(cook.getAvailableHours())
                 .totalOrders(cook.getTotalOrders())
                 .distanceKm(rounded)
+                .followerCount(followRepository.countByCookId(cook.getId()))
                 .build();
     }
 
@@ -219,6 +222,7 @@ public class CookService {
                 .totalOrders(cook.getTotalOrders())
                 .dateOfBirth(cook.getDateOfBirth())
                 .reviewSummary(cook.getReviewSummary())
+                .followerCount(followRepository.countByCookId(cook.getId()))
                 .build();
     }
 }

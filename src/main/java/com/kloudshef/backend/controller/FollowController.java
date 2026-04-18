@@ -2,6 +2,8 @@ package com.kloudshef.backend.controller;
 
 import com.kloudshef.backend.dto.response.ApiResponse;
 import com.kloudshef.backend.dto.response.FollowResponse;
+import com.kloudshef.backend.dto.response.FollowerResponse;
+import com.kloudshef.backend.repository.UserRepository;
 import com.kloudshef.backend.entity.Cook;
 import com.kloudshef.backend.entity.Follow;
 import com.kloudshef.backend.entity.User;
@@ -28,6 +30,7 @@ public class FollowController {
     private final FollowRepository followRepository;
     private final CookRepository cookRepository;
     private final FcmService fcmService;
+    private final UserRepository userRepository;
 
     @PostMapping("/cook/{cookId}")
     @PreAuthorize("isAuthenticated()")
@@ -95,5 +98,31 @@ public class FollowController {
             @AuthenticationPrincipal User user) {
         boolean following = followRepository.existsByUserIdAndCookId(user.getId(), cookId);
         return ResponseEntity.ok(ApiResponse.success(Map.of("following", following)));
+    }
+
+    @GetMapping("/cook/{cookId}/followers")
+    public ResponseEntity<ApiResponse<List<FollowerResponse>>> getFollowers(
+            @PathVariable Long cookId) {
+        cookRepository.findById(cookId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cook not found"));
+        List<FollowerResponse> followers = followRepository.findByCookId(cookId).stream()
+                .map(f -> {
+                    User u = f.getUser();
+                    return FollowerResponse.builder()
+                            .userId(u.getId())
+                            .fullName(u.getFullName())
+                            .profileImageUrl(u.isDpPublic() ? u.getProfileImageUrl() : null)
+                            .city(u.getCity())
+                            .followedAt(f.getCreatedAt())
+                            .build();
+                }).toList();
+        return ResponseEntity.ok(ApiResponse.success(followers));
+    }
+
+    @GetMapping("/cook/{cookId}/count")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> getFollowerCount(
+            @PathVariable Long cookId) {
+        long count = followRepository.countByCookId(cookId);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("count", count)));
     }
 }
