@@ -44,6 +44,9 @@ public class Order {
     @Builder.Default
     private boolean isManual = false;
 
+    /// For manual (walk-in) orders: the customer name provided by the cook
+    private String manualCustomerName;
+
     /// Estimated pickup time set by cook when accepting
     private LocalDateTime estimatedPickupTime;
 

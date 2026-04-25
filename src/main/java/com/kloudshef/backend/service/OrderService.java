@@ -150,11 +150,9 @@ public class OrderService {
                 .totalAmount(totalAmount)
                 .deliveryNote(deliveryNote)
                 .isManual(true)
+                .manualCustomerName(customerName)
                 .build();
 
-        // Stamp the customer name via deliveryNote prefix if no real user
-        // Actually store it as a special deliveryNote token so the response carries it
-        // We handle customerName by patching the response after save
         Order savedOrder = orderRepository.save(order);
         for (OrderItem oi : orderItems) {
             oi.setOrder(savedOrder);
@@ -162,27 +160,7 @@ public class OrderService {
         savedOrder.getItems().addAll(orderItems);
         savedOrder = orderRepository.save(savedOrder);
 
-        OrderResponse resp = toResponse(savedOrder);
-        // Override customer name with the provided walk-in name
-        return OrderResponse.builder()
-                .id(resp.getId())
-                .customerId(resp.getCustomerId())
-                .customerName(customerName)
-                .cookId(resp.getCookId())
-                .cookKitchenName(resp.getCookKitchenName())
-                .cookAddress(resp.getCookAddress())
-                .cookLatitude(resp.getCookLatitude())
-                .cookLongitude(resp.getCookLongitude())
-                .cookCountry(resp.getCookCountry())
-                .items(resp.getItems())
-                .status(resp.getStatus())
-                .totalAmount(resp.getTotalAmount())
-                .deliveryNote(deliveryNote)
-                .estimatedPickupTime(resp.getEstimatedPickupTime())
-                .createdAt(resp.getCreatedAt())
-                .updatedAt(resp.getUpdatedAt())
-                .isManual(true)
-                .build();
+        return toResponse(savedOrder);
     }
 
     @Transactional
@@ -308,10 +286,14 @@ public class OrderService {
                         .build())
                 .toList();
 
+        String customerName = (order.isManual() && order.getManualCustomerName() != null && !order.getManualCustomerName().isBlank())
+                ? order.getManualCustomerName()
+                : order.getCustomer().getFullName();
+
         return OrderResponse.builder()
                 .id(order.getId())
                 .customerId(order.getCustomer().getId())
-                .customerName(order.getCustomer().getFullName())
+                .customerName(customerName)
                 .cookId(order.getCook().getId())
                 .cookKitchenName(order.getCook().getKitchenName())
                 .cookAddress(order.getCook().getAddress())
