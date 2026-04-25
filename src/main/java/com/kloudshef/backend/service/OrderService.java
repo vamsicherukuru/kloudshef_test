@@ -215,7 +215,12 @@ public class OrderService {
             throw new BadRequestException("You are not authorized to update this order");
         }
 
-        OrderStatus parsed = OrderStatus.valueOf(newStatus);
+        OrderStatus parsed;
+        try {
+            parsed = OrderStatus.valueOf(newStatus);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid order status: " + newStatus);
+        }
         OrderStatus previous = order.getStatus();
         order.setStatus(parsed);
 
