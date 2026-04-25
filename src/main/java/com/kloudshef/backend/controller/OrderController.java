@@ -1,5 +1,6 @@
 package com.kloudshef.backend.controller;
 
+import com.kloudshef.backend.dto.request.ManualOrderRequest;
 import com.kloudshef.backend.dto.request.PlaceOrderRequest;
 import com.kloudshef.backend.dto.request.UpdateOrderStatusRequest;
 import com.kloudshef.backend.dto.response.ApiResponse;
@@ -61,5 +62,17 @@ public class OrderController {
                 .orElseThrow(() -> new com.kloudshef.backend.exception.ResourceNotFoundException("Cook profile not found"))
                 .getId();
         return ResponseEntity.ok(ApiResponse.success(orderService.updateOrderStatus(id, cookId, request.getStatus(), request.getEstimatedPickupMinutes())));
+    }
+    @PostMapping("/manual")
+    @PreAuthorize("hasRole('COOK')")
+    public ResponseEntity<ApiResponse<OrderResponse>> createManualOrder(
+            @AuthenticationPrincipal User user,
+            @RequestBody ManualOrderRequest request) {
+        Long cookId = cookRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new com.kloudshef.backend.exception.ResourceNotFoundException("Cook profile not found"))
+                .getId();
+        return ResponseEntity.ok(ApiResponse.success(
+                orderService.createManualOrder(cookId, request.getCustomerName(),
+                        request.getItems(), request.getDeliveryNote())));
     }
 }

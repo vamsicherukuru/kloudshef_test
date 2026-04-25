@@ -41,6 +41,9 @@ public class Order {
 
     private String deliveryNote;
 
+    @Builder.Default
+    private boolean isManual = false;
+
     /// Estimated pickup time set by cook when accepting
     private LocalDateTime estimatedPickupTime;
 

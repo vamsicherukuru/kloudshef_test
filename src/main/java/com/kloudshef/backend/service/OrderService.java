@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -107,6 +108,81 @@ public class OrderService {
         }
 
         return getMyOrders(customerId);
+    }
+
+    @Transactional
+    public OrderResponse createManualOrder(Long cookId, String customerName,
+            List<Map<String, Object>> items, String deliveryNote) {
+        Cook cook = cookRepository.findById(cookId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cook not found with id: " + cookId));
+
+        List<OrderItem> orderItems = new ArrayList<>();
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        for (var item : items) {
+            String name = (String) item.get("name");
+            int qty = ((Number) item.get("quantity")).intValue();
+            double price = item.get("price") != null ? ((Number) item.get("price")).doubleValue() : 0.0;
+            BigDecimal unitPrice = BigDecimal.valueOf(price);
+            BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(qty));
+            totalAmount = totalAmount.add(subtotal);
+
+            Long menuItemId = item.get("menuItemId") != null
+                    ? ((Number) item.get("menuItemId")).longValue() : null;
+
+            orderItems.add(OrderItem.builder()
+                    .menuItemId(menuItemId)
+                    .itemName(name)
+                    .itemPrice(unitPrice)
+                    .quantity(qty)
+                    .subtotal(subtotal)
+                    .isVegetarian(false)
+                    .build());
+        }
+
+        // Use the cook's own user as the "customer" placeholder but store name override
+        User cookUser = cook.getUser();
+
+        Order order = Order.builder()
+                .customer(cookUser)
+                .cook(cook)
+                .status(OrderStatus.PENDING)
+                .totalAmount(totalAmount)
+                .deliveryNote(deliveryNote)
+                .isManual(true)
+                .build();
+
+        // Stamp the customer name via deliveryNote prefix if no real user
+        // Actually store it as a special deliveryNote token so the response carries it
+        // We handle customerName by patching the response after save
+        Order savedOrder = orderRepository.save(order);
+        for (OrderItem oi : orderItems) {
+            oi.setOrder(savedOrder);
+        }
+        savedOrder.getItems().addAll(orderItems);
+        savedOrder = orderRepository.save(savedOrder);
+
+        OrderResponse resp = toResponse(savedOrder);
+        // Override customer name with the provided walk-in name
+        return OrderResponse.builder()
+                .id(resp.getId())
+                .customerId(resp.getCustomerId())
+                .customerName(customerName)
+                .cookId(resp.getCookId())
+                .cookKitchenName(resp.getCookKitchenName())
+                .cookAddress(resp.getCookAddress())
+                .cookLatitude(resp.getCookLatitude())
+                .cookLongitude(resp.getCookLongitude())
+                .cookCountry(resp.getCookCountry())
+                .items(resp.getItems())
+                .status(resp.getStatus())
+                .totalAmount(resp.getTotalAmount())
+                .deliveryNote(deliveryNote)
+                .estimatedPickupTime(resp.getEstimatedPickupTime())
+                .createdAt(resp.getCreatedAt())
+                .updatedAt(resp.getUpdatedAt())
+                .isManual(true)
+                .build();
     }
 
     @Transactional
@@ -249,6 +325,7 @@ public class OrderService {
                 .estimatedPickupTime(order.getEstimatedPickupTime())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
+                .isManual(order.isManual())
                 .build();
     }
 }

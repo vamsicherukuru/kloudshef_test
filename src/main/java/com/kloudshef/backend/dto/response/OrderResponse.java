@@ -22,6 +22,7 @@ public class OrderResponse {
     private LocalDateTime estimatedPickupTime;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isManual;
     private String cookAddress;
     private Double cookLatitude;
     private Double cookLongitude;
